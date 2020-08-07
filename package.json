@@ -6,6 +6,7 @@
         "cookie-parser": "^1.4.5",
         "express": "^4.17.1",
         "nodemailer": "^6.4.11",
+        "pug": "^3.0.0",
         "sqlite": "^4.0.12",
         "sqlite3": "https://github.com/mapbox/node-sqlite3/tarball/master"
     }

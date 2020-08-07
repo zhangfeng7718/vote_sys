@@ -19,6 +19,9 @@ const port = 3005;
 
 const changePasswordTokenMap = {};
 
+app.locals.pretty = true;
+app.set('views', __dirname + '/tpl')
+// app.set('view engine', 'pug')
 
 
 app.use((req,res, next)=>{
@@ -38,12 +41,12 @@ app.use(express.urlencoded({
 
 
 app.get('/', (req, res, next)=>{
-    if(req.signedCookies.user){
+    if(req.signedCookies.userid){
         res.send(`
             <div>
-                <span>Welcome, ${req.signedCookies.user}</span>
+                <span>Welcome, ${req.signedCookies.userid}</span>
                 <br>
-                <a href= "/create">创建投票</a>
+                <a href= "/create.html">创建投票</a>
                 <a href="/logout">退出</a>
             </div>
         `)
@@ -57,11 +60,38 @@ app.get('/', (req, res, next)=>{
     }
 })
 
-app.get('/create', (req, res, next)=>{
+app.post('/create-vote', async(req, res, next)=>{
+    var params = req.body;
+    // 如果直接使用字符串拼接会有sql注入的风险
+    await db.run('INSERT INTO votes (title, desc, userid, singleSelection, deadline, anonymouse) VALUES (?,?,?,?,?,?)' ,
+    params.title, params.desc, req.signedCookies.userid, params.singleSelection, new Date(params.deadline).getTime() , params.anonymouse)
 
+    var vote = await db.get('SELECT * FROM votes ORDER BY id DESC LIMIT 1')
+    console.log(params.options)
+    await Promise.all(params.options.map(option=>{
+        return db.run('INSERT INTO options (content, voteid) VALUES (?, ?)', option, vote.id )
+    }))
+
+    res.render('create-success.pug', {
+        vote: vote
+    })
+
+    setTimeout(()=>{
+        res.redirect('/vote/' + vote.id)
+    }, 5000)
 })
 
-app.get('/vote/:id', (req, res, next)=>{
+app.get('/vote/:id',async (req, res, next)=>{
+    var votePromise = db.get('SELECT * FROM votes WHERE id = ?', req.params.id);
+    var optionsPromise = db.all('SELECT * FROM options WHERE voteid=?', req.params.id);
+
+    var vote = await votePromise;
+    var options = await optionsPromise;
+
+    res.render('vote.pug', {
+        vote: vote,
+        options: options,
+    })
 
 })
 
@@ -126,7 +156,7 @@ app.route('/login')
         var userInfo = req.body;
         var user = await db.get('SELECT * FROM users WHERE name = ? AND password=?', userInfo.name , userInfo.password);
         if(user){
-            res.cookie('user', userInfo.name, {
+            res.cookie('userid', user.id, {
                 signed: true,
             });
             res.json({
