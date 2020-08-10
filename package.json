@@ -5,10 +5,14 @@
     "dependencies": {
         "cookie-parser": "^1.4.5",
         "express": "^4.17.1",
+        "express-session": "^1.17.1",
+        "md5": "^2.3.0",
+        "multer": "^1.4.2",
         "nodemailer": "^6.4.11",
         "pug": "^3.0.0",
         "socket.io": "^2.3.0",
         "sqlite": "^4.0.12",
-        "sqlite3": "https://github.com/mapbox/node-sqlite3/tarball/master"
+        "sqlite3": "https://github.com/mapbox/node-sqlite3/tarball/master",
+        "svg-captcha": "^1.4.0"
     }
 }

@@ -41,8 +41,9 @@ block content
                 voteResult.push(data);
                 updateState(voteResult)
             })
-
-            updateState(voteResult);
+            if(voteResult.length > 0){
+                updateState(voteResult);
+            }
         }
 
         main();
