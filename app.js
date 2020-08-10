@@ -13,12 +13,10 @@ const server = http.createServer(app);
 const ioServer = socketIO(server);
 /**
  * 需要补充的东西(页面的补充完成和UI优化 使用Bootstrap)
- * 用户密码不能明文存储, md5 存储
  * 未登录不能为非匿名问题投票
  *     权限验证
  * 问题过期后不能再投票  只能查看结果
  *     问题过期后投票结果不会实时更新  不需要socketio连接
- * 各个页面的交互 不能只返回一个由文字组成的页面
  * 整站的所有页面都有头部和底部
  * 创建投票的页面交互优化
  * 创建投票的后端需要额外的验证
@@ -27,28 +25,36 @@ const ioServer = socketIO(server);
  * 登录后可以查看自己发起过的投票
  *
  *
- *
  * 登陆时需要输入验证码
  * 注册时可以上传头像
+ * 用户密码不能明文存储, md5 存储
+ * 各个页面的交互 不能只返回一个由文字组成的页面
+ *
  */
 const port = 3005;
 
 app.locals.pretty = true;
-app.set('views', __dirname + '/tpl')
+app.set('views', __dirname + '/tpl') // 设置渲染资源目录
 // app.set('view engine', 'pug')
 
 app.use((req,res, next)=>{
     res.set('Content-Type', 'text/html; charset=UTF-8');
     next();
 })
-app.use(session({secret: 'sercet', resave: false, cookie: {maxAge: 65536}}))
+app.use(session({
+    secret: 'sercet',
+    resave: false,
+    cookie: {maxAge: 65536},
+    saveUninitialized: true,
+}))  // session 中间件  需要写在cookieParser前面
 
-app.use(cookieParser('sercet'))
+app.use(cookieParser('sercet')) // cookie解析和设置中间件
 
 app.use(express.json()) //解析Json
 
-app.use(express.static(__dirname + '/static'));
-app.use('/upload', express.static(__dirname + '/upload'))
+app.use(express.static(__dirname + '/static')); // 静态文件默认目录
+
+app.use('/upload', express.static(__dirname + '/upload')) // 头像图片二进制文件上传目录
 
 app.use(express.urlencoded({ //解析url编码
     extended: true
@@ -71,8 +77,8 @@ app.use(express.urlencoded({ //解析url编码
 //     req.session = captchaSession.sessionid;
 //     next();
 // })
+// socketIo 加入组
 ioServer.on('connection', socket=>{
-    // console.log(socket.request)
     var path = url.parse(socket.request.headers.referer).path;
     socket.join(path);
 })
@@ -83,20 +89,13 @@ ioServer.on('connection', socket=>{
  * 未登录   ----->  直接跳转登录注册页面
  */
 app.get('/', async(req, res, next)=>{
-
     var user = await db.get('SELECT * FROM users WHERE id = ?' , req.signedCookies.userid)
-
     if(req.signedCookies.userid){
         res.render('index.pug', {
             user: user,
         })
     }else{
-        res.send(`
-        <div>
-            <a href = "/register">注册</a>
-            <a href = "/login">登录</a>
-        </div>
-        `)
+        res.render('start.pug', {})
     }
 })
 /**
@@ -170,7 +169,6 @@ app.post('/voteup', async (req ,res ,next)=>{
     var voteups = await db.all('SELECT * FROM voteups WHERE voteid=?', body.voteid)
     res.json(voteups)
 })
-
 // 某个用户获取某个问题的投票信息
 app.get('/voteup/:voteid/info' , async(req, res, next)=>{
     var userid = req.signedCookies.userid;
@@ -184,13 +182,11 @@ app.get('/voteup/:voteid/info' , async(req, res, next)=>{
         res.json(null);
     }
 })
-
 // 用户登录注册路由引入
 app.use('/', userAccountRouter)
 
 dbp.then(dbObject =>{
     db = dbObject;
-
     server.listen(port ,()=>{
         console.log('app is run on port ', port)
     })

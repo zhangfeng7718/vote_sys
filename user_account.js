@@ -12,6 +12,7 @@ const uploader = multer({
     preservePath: true,
 })
 const changePasswordTokenMap = {};
+app.set('views', __dirname + '/tpl')
 
 const dbp = require('./db')
 let db;
@@ -53,51 +54,7 @@ app.route('/register')
 
 app.route('/login')
     .get((req, res, next)=>{
-        res.send(`
-            <form id="loginFrom" action:"/login" method="post">
-                用户名： <input type = "text" name="name"><br>
-                密码:    <input type = "password" name="password"><br>
-                验证码:  <input type="text" name="captcha"> <img id="captchaImg" src="/captcha"  style="width:150px; height:50px"><br>
-                <a href="/forgot">忘记密码</a>
-                <button>登录</button>
-            </from>
-
-            <script>
-                var loginFrom = document.querySelector('#loginFrom');
-                var captchaImg = document.querySelector('#captchaImg');
-
-                captchaImg.addEventListener('click', ()=>{
-                    var src = captchaImg.src;
-                    captchaImg.src = '';
-                    setTimeout(()=>{
-                        captchaImg.src = src;
-                    },1)
-                })
-
-
-                loginFrom.addEventListener('submit', (e)=>{
-                    e.preventDefault();
-                    var name = document.querySelector('[name="name"]').value;
-                    var password = document.querySelector('[name="password"]').value;
-                    var captcha = document.querySelector('[name="captcha"]').value;
-
-                    var xhr = new XMLHttpRequest();
-                    xhr.open('POST', '/login');
-                    xhr.setRequestHeader('Content-Type', 'application/x-www-form-urlencoded; charset=UTF-8')
-                    xhr.onload = ()=>{
-                        var data = JSON.parse(xhr.responseText);
-                        if(data.code == 0){
-                            alert('login success')
-                            location.href = '/'
-                        }else{
-                            alert('login failed')
-                            captchaImg.click()
-                        }
-                    }
-                    xhr.send('name=' + name + '&password=' + password + '&captcha=' + captcha);
-                })
-            </script>
-        `)
+        res.render('login.pug',{})
     })
     .post(async (req, res, next)=>{
         var userInfo = req.body;

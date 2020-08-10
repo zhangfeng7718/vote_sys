@@ -3,9 +3,10 @@ block content
     style
         include index.css
 
-    div
-        span Welcome, #{user.name}
+    div(id="main")
+        h2(class="text-center") Welcome, #{user.name}
         img(src="/" + user.avatar)
-        a(href="/create.html") 创建投票
         br
-        a(href="/logout") 登出
+        a(href="/create.html" class="btn btn-default  btn-lg active") 创建投票
+        br
+        a(href="/logout" class="btn btn-default  btn-lg active") 登出

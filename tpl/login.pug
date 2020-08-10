@@ -1,0 +1,56 @@
+extends layout.pug
+
+block content
+
+    form#loginFrom(action="/login" method="post" style="margin: 100px")
+        div(class="form-group")
+            label(for="name") 用户名
+                input(type="text" name="name" class="form-control" placeholder="username")
+
+        div(class="form-group")
+            label(for="password") 密码:
+                input(type="password" name="password" class="form-control" placeholder="password")
+
+        div(class="form-group")
+            label(for="captcha") 验证码:
+                input(type="text" name="captcha" class="form-control" placeholder="captcha")
+            img(id="captchaImg" src="/captcha"  style="width:150px; height:50px")
+
+        a(href="/forgot" class="btn btn-default btn-md active") 忘记密码
+        button(class="btn btn-default") 登录
+
+    script.
+            var loginFrom = document.querySelector('#loginFrom');
+            var captchaImg = document.querySelector('#captchaImg');
+
+            captchaImg.addEventListener('click', ()=>{
+                var src = captchaImg.src;
+                setTimeout(()=>{
+                    // 由于浏览器缓存的存在 我们需要每次请求的时候都改变Url 不然由于浏览器
+                    // 优先使用缓存 可能会导致无法点击刷新
+                    captchaImg.src = src +'?captcha=' + new Date().getTime();
+                },1)
+            })
+
+            loginFrom.addEventListener('submit', (e)=>{
+                e.preventDefault();
+                var name = document.querySelector('[name="name"]').value;
+                var password = document.querySelector('[name="password"]').value;
+                var captcha = document.querySelector('[name="captcha"]').value;
+
+                var xhr = new XMLHttpRequest();
+                xhr.open('POST', '/login');
+                xhr.setRequestHeader('Content-Type', 'application/x-www-form-urlencoded; charset=UTF-8')
+                xhr.onload = ()=>{
+                    var data = JSON.parse(xhr.responseText);
+                    if(data.code == 0){
+                        alert('login success')
+                        location.href = '/'
+                    }else{
+                        alert('login failed')
+                        captchaImg.click()
+                    }
+                }
+                xhr.send('name=' + name + '&password=' + password + '&captcha=' + captcha);
+            })
+
