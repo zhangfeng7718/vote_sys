@@ -127,7 +127,7 @@ app.route('/forgot')
             host: 'smtp.qq.com',
             secure: true,
             auth: {
-                user: '771804817@qq.com',
+                user: '771asdas4sd@qq.com',
                 pass: 'ddfupkjkitbtbbei',
             }
         })
