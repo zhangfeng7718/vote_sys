@@ -5,5 +5,5 @@ html{
 body{
     width: 100%;
     height: 100%;
-    background: no-repeat center/120% url('bg.jpg');
+    background: no-repeat center/100% url('bg.jpg');
 }

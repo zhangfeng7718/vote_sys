@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>创建投票</title>
+</head>
+<body>
+    <h2>创建投票</h2>
+    <form id = 'form' action="/create-vote" method="POST">
+        <div><input type="text" placeholder="标题" name="title" required></div>
+        <div><input type="text" placeholder="问题描述" name="desc"></div>
+        <div><input type="text" placeholder="选项" name="options"><button type="button" class= 'remove-option'>-</button></div>
+        <div><input type="text" placeholder="选项" name="options"><button type="button" class= 'remove-option'>-</button></div>
+        <div id="add-option-wrap"><button  type="button" id="add-option">添加选项</button></div>
+        <div><input type="datetime-local" placeholder="截止日期" name="deadline"></div>
+        <div>匿名投票: <input type="radio" value="0" name="anonymouse">
+            实名投票: <input type="radio" value="1" checked name="anonymouse">
+        </div>
+        <div>
+            <select name="singleSelection" id="">
+                <option value="1">单选</option>
+                <option value="0">多选</option>
+            </select>
+        </div>
+        <button>创建投票</button>
+    </form>
+
+
+    <script>
+        var form = document.querySelector('#form');
+        var addOption = document.querySelector('#add-option');
+        var addOptionWrap = document.querySelector('#add-option-wrap')
+        form.addEventListener('click', e=>{
+            if(e.target.matches('.remove-option')){
+                e.target.parentNode.remove()
+            }
+        })
+
+        addOption.addEventListener('click', e=>{
+            var wrap = document.createElement('div');
+            wrap.innerHTML = `<div><input type="text" placeholder= "选项" name="options" /><button type="button" class="remove-option">-</button></div>`;
+            form.insertBefore(wrap.firstChild, addOptionWrap);
+        })
+    </script>
+</body>
+</html>

@@ -36,6 +36,9 @@ block content
         // 轮询的做法  每隔一段时间  网页就对服务器发送请求
         // 长轮询  在没有给消息时就不响应  在给到消息的瞬间进行响应
             var socket = io();
+
+            socket.emit('select room', location.pathname.split('/').pop())
+
             socket.on('new vote', data=>{
                 // 没有对票进行验证 实际数据库中并没有那么多票
                 voteResult.push(data);
@@ -60,7 +63,7 @@ block content
 
             var voteResult  = (await axios.post('/voteup', {
                 voteid: optionList.dataset.voteid,
-                optionid : optionid
+                optionid : optionid,
             })).data;
 
             main()

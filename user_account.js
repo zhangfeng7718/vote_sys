@@ -22,15 +22,16 @@ dbp.then(dbObject =>{
 
 app.route('/register')
     .get((req, res, next)=>{
-        res.send(`
-            <form action:"/register" method="post" enctype="multipart/form-data">
-                用户名： <input type = "text" name="name"><br>
-                邮箱:    <input type = "email" name="email"><br>
-                密码:    <input type = "password" name="password"><br>
-                头像:    <input type = "file" name= "avatar"><br>
-                <button>注册</button>
-            </from>
-        `)
+        res.render('register.pug', {})
+        // res.send(`
+        //     <form action:"/register" method="post" enctype="multipart/form-data">
+        //         用户名： <input type = "text" name="name"><br>
+        //         邮箱:    <input type = "email" name="email"><br>
+        //         密码:    <input type = "password" name="password"><br>
+        //         头像:    <input type = "file" name= "avatar"><br>
+        //         <button>注册</button>
+        //     </from>
+        // `)
     })
     .post(uploader.single('avatar') ,async (req, res, next)=>{
         var regInfo = req.body;
@@ -41,8 +42,6 @@ app.route('/register')
         // await sharp(imgBuf)
         //     .resize(256)
         //     .File(req.file.path)
-
-
         if(user){
             res.end('用户名已经被占用');
         }else{
@@ -127,7 +126,7 @@ app.route('/forgot')
             host: 'smtp.qq.com',
             secure: true,
             auth: {
-                user: '771asdas4sd@qq.com',
+                user: '771804817@qq.com',
                 pass: 'ddfupkjkitbtbbei',
             }
         })

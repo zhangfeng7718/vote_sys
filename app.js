@@ -11,6 +11,7 @@ let db;
 const app = express();
 const server = http.createServer(app);
 const ioServer = socketIO(server);
+const cors = require('cors')
 /**
  * 需要补充的东西(页面的补充完成和UI优化 使用Bootstrap)
  * 未登录不能为非匿名问题投票
@@ -59,6 +60,11 @@ app.use('/upload', express.static(__dirname + '/upload')) // 头像图片二进�
 app.use(express.urlencoded({ //解析url编码
     extended: true
 }));
+
+app.use(cors({
+    maxAge: 86400,
+    credentials: true,
+}))
 // 存储对话信息  session 主要做的事情
 // var captchaSession = {
 // }
@@ -77,11 +83,16 @@ app.use(express.urlencoded({ //解析url编码
 //     req.session = captchaSession.sessionid;
 //     next();
 // })
+
 // socketIo 加入组
 ioServer.on('connection', socket=>{
-    var path = url.parse(socket.request.headers.referer).path;
-    socket.join(path);
+    // var path = url.parse(socket.request.headers.referer).path;
+
+    socket.on('select room', roomid=>{
+        socket.join('/vote/' + roomid);
+    })
 })
+
 /**
  * 主页面
  * 如果根据cookie中是否存在 userid 判断用户是否登录
@@ -114,13 +125,11 @@ app.post('/create-vote', async(req, res, next)=>{
         return db.run('INSERT INTO options (content, voteid) VALUES (?, ?)', option, vote.id )
     }))
 
-    res.render('create-success.pug', {
-        vote: vote
-    })
-
-    setTimeout(()=>{
+    if(req.is('json')){
+        res.json(vote)
+    }else{
         res.redirect('/vote/' + vote.id)
-    }, 5000)
+    }
 })
 /**
  * 投票详情页面
@@ -129,18 +138,23 @@ app.post('/create-vote', async(req, res, next)=>{
  * 实时更新投票
  */
 app.get('/vote/:id',async (req, res, next)=>{
+
     var votePromise = db.get('SELECT * FROM votes WHERE id = ?', req.params.id);
     var optionsPromise = db.all('SELECT * FROM options WHERE voteid=?', req.params.id);
 
     var vote = await votePromise;
     var options = await optionsPromise;
-    console.log(vote)
-
-    res.render('vote.pug', {
-        vote: vote,
-        options: options,
-    })
-
+    // console.log(vote, options)
+    // 直接在地址栏中输入地址时会发送两次请求
+    console.log(req.params.id)
+    if(vote && options){
+        res.render('vote.pug', {
+            vote: vote,
+            options: options,
+        })
+    }else{
+        res.end();
+    }
 })
 // 用户投票接口
 app.post('/voteup', async (req ,res ,next)=>{
@@ -150,9 +164,8 @@ app.post('/voteup', async (req ,res ,next)=>{
 
 
     var voteupInfo = await db.get('SELECT * FROM voteups WHERE userid=? AND voteid=?', userid, body.voteid)
+    // console.log(voteupInfo)
     if(voteupInfo){
-        // res.end();
-        // return;
         await db.run('UPDATE voteups SET optionid=? WHERE userid=? AND voteid=?', body.optionid, userid, body.voteid)
     }else{
         await db.run('INSERT INTO voteups (userid, optionid, voteid) VALUES (?,?,?)',
@@ -161,15 +174,33 @@ app.post('/voteup', async (req ,res ,next)=>{
     }
 
     ioServer.in(`/vote/${body.voteid}`).emit('new vote', {
-        userid: userid,
+        userid: Number(userid),
+        voteid: body.voteid,
+        optionid: body.optionid,
+    })
+
+    ioServer.in(`/vote_vue/${body.voteid}`).emit('new vote', {
+        userid: Number(userid),
         voteid: body.voteid,
         optionid: body.optionid,
     })
 
     var voteups = await db.all('SELECT * FROM voteups WHERE voteid=?', body.voteid)
+    console.log(voteups)
     res.json(voteups)
 })
-// 某个用户获取某个问题的投票信息
+// 获取某个投票的基本信息
+app.get('/voteinfo/:id',async(req, res, next)=>{
+    var info = await db.get('SELECT * FROM votes WHERE id=?', req.params.id);
+    var options = await db.all('SELECT * FROM options WHERE voteid=?', req.params.id)
+    var voteup = await db.all('SELECT * FROM voteups JOIN users ON voteups.userid=users.id  WHERE voteid=?', req.params.id)
+    res.json({
+        info,
+        options,
+        voteup
+    })
+})
+// 获取某个问题的具体投票信息
 app.get('/voteup/:voteid/info' , async(req, res, next)=>{
     var userid = req.signedCookies.userid;
     var voteid = req.params.voteid;

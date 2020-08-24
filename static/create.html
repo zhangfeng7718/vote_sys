@@ -3,44 +3,75 @@
 <head>
     <meta charset="UTF-8">
     <title>创建投票</title>
+    <style>
+        #app{
+            margin: 100px;
+        }
+    </style>
 </head>
 <body>
-    <h2>创建投票</h2>
-    <form id = 'form' action="/create-vote" method="POST">
-        <div><input type="text" placeholder="标题" name="title" required></div>
-        <div><input type="text" placeholder="问题描述" name="desc"></div>
-        <div><input type="text" placeholder="选项" name="options"><button type="button" class= 'remove-option'>-</button></div>
-        <div><input type="text" placeholder="选项" name="options"><button type="button" class= 'remove-option'>-</button></div>
-        <div id="add-option-wrap"><button  type="button" id="add-option">添加选项</button></div>
-        <div><input type="datetime-local" placeholder="截止日期" name="deadline"></div>
-        <div>匿名投票: <input type="radio" value="0" name="anonymouse">
-            实名投票: <input type="radio" value="1" checked name="anonymouse">
+    <div id="app">
+        <h2>创建投票</h2>
+        <div><input type="text" placeholder="标题" v-model="voteInfo.title"></div>
+        <div><input type="text" placeholder="问题描述" v-model="voteInfo.desc"></div>
+        <div v-for="(option,idx) in voteInfo.options">
+            <input type="text" placeholder="选项" v-model="voteInfo.options[idx]">
+            <button type="button" @click="deleteoption(idx)">-</button>
+        </div>
+        <div><button @click="addoption" >添加选项</button></div>
+        <div><input type="datetime-local" placeholder="截止日期" v-model="voteInfo.deadline"></div>
+        <div>
+            实名投票: <input type="radio" value="1" v-model="voteInfo.anonymouse" >
+            匿名投票: <input type="radio" value="0" v-model="voteInfo.anonymouse">
         </div>
         <div>
-            <select name="singleSelection" id="">
+            <select v-model="voteInfo.singleSelection">
                 <option value="1">单选</option>
                 <option value="0">多选</option>
             </select>
+            <button @click="createvote">创建投票</button>
         </div>
-        <button>创建投票</button>
-    </form>
-
-
-    <script>
-        var form = document.querySelector('#form');
-        var addOption = document.querySelector('#add-option');
-        var addOptionWrap = document.querySelector('#add-option-wrap')
-        form.addEventListener('click', e=>{
-            if(e.target.matches('.remove-option')){
-                e.target.parentNode.remove()
-            }
-        })
-
-        addOption.addEventListener('click', e=>{
-            var wrap = document.createElement('div');
-            wrap.innerHTML = `<div><input type="text" placeholder= "选项" name="options" /><button type="button" class="remove-option">-</button></div>`;
-            form.insertBefore(wrap.firstChild, addOptionWrap);
-        })
-    </script>
+    </div>
 </body>
+<script src="https://cdn.jsdelivr.net/npm/vue/dist/vue.js"></script>
+<script src="./assets/axios.min.js"></script>
+<script>
+    var app = new Vue({
+        el: '#app',
+        data:{
+            voteInfo:{
+                title: '',
+                desc: '',
+                options: [
+                '',
+                '',
+                ],
+                deadline: '',
+                anonymouse: '1',
+                singleSelection: '1',
+            }
+
+        },
+        methods:{
+            deleteoption(index){
+                this.voteInfo.options.splice(index, 1)
+            },
+            addoption(){
+                this.voteInfo.options.push('')
+            },
+            async createvote(){
+                var data = await axios.post('/create-vote', {
+                    title: this.voteInfo.title,
+                    desc: this.voteInfo.desc,
+                    options: this.voteInfo.options,
+                    deadline: this.voteInfo.deadline,
+                    anonymouse: this.voteInfo.anonymouse,
+                    singleSelection: this.voteInfo.singleSelection,
+                })
+                location.href = '/vote_vue.html?id=' + data.data.id
+            }
+        }
+    })
+
+</script>
 </html>
