@@ -1,0 +1,289 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Vote</title>
+</head>
+
+<body>
+    <div id="app">
+        <router-view></router-view>
+    </div>
+</body>
+<script src="/assets/vue.js"></script>
+<script src="/assets/vuex.js"></script>
+<script src="/assets/vue-router.js"></script>
+<script src="/assets/axios.min.js"></script>
+<script src="/assets/lodash.min.js"></script>
+<script src="/socket.io/socket.io.js"></script>
+<script>
+    var api = axios.create({
+        baseURL: '/'
+    })
+
+    var Index = {
+        template: `
+            <div>
+                <h2>欢迎, {{user? user.name : '游客'}}</h2>
+                <div v-if="user">
+                    <button @click="logout">退出</button>
+                    <router-link to="/create">创建投票</router-link>
+                </div>
+
+                <div v-else>
+                    <router-link to="/login">登录</router-link>
+                    <router-link to="/register">注册</router-link>
+                </div>
+            </div>
+        `,
+        data() {
+            return {
+                user: null,
+            }
+        },
+        async mounted() {
+            try {
+                var request = await api.get('/userinfo')
+                this.user = request.data
+            } catch (e) {
+                // this.$router.push('/login');
+            }
+        },
+        methods: {
+            async logout() {
+                await api.get('/logout');
+                this.user = null;
+                console.log(this.user)
+            }
+        }
+    }
+
+    var CreateVote = {
+        template: `
+        <div>
+            <h2>创建投票</h2>
+            <div><input type="text" placeholder="标题" v-model="voteInfo.title"></div>
+            <div><input type="text" placeholder="问题描述" v-model="voteInfo.desc"></div>
+            <div v-for="(option,idx) in voteInfo.options">
+                <input type="text" placeholder="选项" v-model="voteInfo.options[idx]">
+                <button type="button" @click="deleteoption(idx)">-</button>
+            </div>
+            <div><button @click="addoption">添加选项</button></div>
+            <div><input type="datetime-local" placeholder="截止日期" v-model="voteInfo.deadline"></div>
+            <div>
+                实名投票: <input type="radio" value="1" v-model="voteInfo.anonymouse">
+                匿名投票: <input type="radio" value="0" v-model="voteInfo.anonymouse">
+            </div>
+            <div>
+                <select v-model="voteInfo.singleSelection">
+                    <option value="1">单选</option>
+                    <option value="0">多选</option>
+                </select>
+                <button @click="createvote">创建投票</button>
+            </div>
+        </div>
+        `,
+        data() {
+            return {
+                voteInfo: {
+                    title: '',
+                    desc: '',
+                    options: [
+                        '',
+                        '',
+                    ],
+                    deadline: '',
+                    anonymouse: '1',
+                    singleSelection: '1',
+                }
+            }
+        },
+        methods: {
+            deleteoption(index) {
+                this.voteInfo.options.splice(index, 1)
+            },
+            addoption() {
+                this.voteInfo.options.push('')
+            },
+            async createvote() {
+                var request = await api.post('/create', {
+                    title: this.voteInfo.title,
+                    desc: this.voteInfo.desc,
+                    options: this.voteInfo.options,
+                    deadline: this.voteInfo.deadline,
+                    anonymouse: this.voteInfo.anonymouse,
+                    singleSelection: this.voteInfo.singleSelection,
+                })
+                this.$router.push('/vote/' + request.data.id)
+            }
+        }
+    }
+
+    var VoteView = {
+        template: `
+            <div>
+                <div>
+                    <h1>{{vote.info.title}}</h1>
+                    <h3>{{vote.info.desc}}</h3>
+                </div>
+                <ul class="options">
+                    <li v-for="option in vote.options" @click="voteup(option.id)">
+                        {{ option.content }} - {{ summary[option.id]== undefined ? 0: summary[option.id].length }}票
+                        <div class="ratio" style="height: 3px; background-color: red;" :style="{width: ratioSummary[option.id] * 100 + '%'}">
+                        </div>
+                    </li>
+                </ul>
+            </div>
+        `,
+        async mounted() {
+            // 通过前端路由获取投票id
+            var id = this.$router.params.id;
+
+            var request = await axios.get('/vote/' + id);
+            var data = request.data;
+            this.vote = data;
+            this.vote.voteup = _.uniqBy(this.vote.voteup, 'userid')
+
+            this.socket = io();
+            this.socket.emit('select room', id)
+
+            this.socket.on('new vote', data => {
+                this.vote.voteup.push(data);
+                this.vote.voteup = _.uniqBy(this.vote.voteup, 'userid')
+            })
+        },
+        data() {
+            return {
+                vote: {
+                    info: {},
+                    options: [],
+                    voteup: [],
+                },
+            }
+        },
+        computed: {
+            summary() {
+                var obj = _.mapValues(_.keyBy(this.vote.options, 'id'), () => [])
+                return {
+                    ...obj,
+                    ..._.groupBy(this.vote.voteup, 'optionid')
+                }
+            },
+            ratioSummary() {
+                // console.log(this.vote.voteup)
+                return _.mapValues(this.summary, (voteups, voteid) => {
+                    if (voteups.length == 0) return 0;
+                    return voteups.length / this.vote.voteup.length
+                })
+            }
+        },
+        methods: {
+            async voteup(optionid) {
+                var response = await api.post('/voteup', {
+                    optionid,
+                    voteid: this.vote.info.id,
+                })
+                // 同步内部数据
+                if (response.status == 200) {
+                    this.vote.voteup = response.data
+                }
+            }
+        }
+    }
+
+    var Login = {
+        template: `
+            <div>
+                <input type="text" v-model="info.name" />
+                <input type="password" v-model="info.password" />
+                <button @click="login">登录</button>
+            </div>
+        `,
+        data() {
+            return {
+                info: {
+                    name: '',
+                    password: '',
+                }
+            }
+        },
+        methods: {
+            async login() {
+                await api.post('/login', this.info)
+                this.$router.push('/')
+            }
+        }
+    }
+
+    var Register = {
+        template: `
+            <div>
+                <input type="text" v-model="info.name" />
+                <input type="password" v-model="info.password" />
+                <input type="email" v-model="info.email" />
+                <input type="file"  />
+                <button>注册</button>
+            </div>
+        `,
+        data() {
+            return {
+                info: {
+                    name: '',
+                    password: '',
+                }
+            }
+        },
+        methods: {
+            async register() {
+                await api.post('/register', this.info)
+                this.$router.push('/login')
+            }
+        }
+    }
+
+    var Forgot = {
+        template: `
+
+        `
+    }
+
+    var changePassword = {
+        template: `
+
+        `
+    }
+
+    var router = new VueRouter({
+        routes: [{
+            path: '/',
+            component: Index,
+        }, {
+            path: '/create',
+            component: CreateVote,
+        }, {
+            path: '/vote/:id',
+            component: VoteView,
+        }, {
+            path: '/login',
+            component: Login,
+        }, {
+            path: '/register',
+            component: Register,
+        }, {
+            path: '/forgot',
+            component: Forgot,
+        }, {
+            path: '/change-password/:token',
+            component: changePassword,
+        }]
+    })
+
+    var app = new Vue({
+        el: '#app',
+        router,
+    })
+</script>
+
+</html>

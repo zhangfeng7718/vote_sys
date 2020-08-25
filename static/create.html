@@ -1,14 +1,16 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <title>创建投票</title>
     <style>
-        #app{
+        #app {
             margin: 100px;
         }
     </style>
 </head>
+
 <body>
     <div id="app">
         <h2>创建投票</h2>
@@ -18,10 +20,10 @@
             <input type="text" placeholder="选项" v-model="voteInfo.options[idx]">
             <button type="button" @click="deleteoption(idx)">-</button>
         </div>
-        <div><button @click="addoption" >添加选项</button></div>
+        <div><button @click="addoption">添加选项</button></div>
         <div><input type="datetime-local" placeholder="截止日期" v-model="voteInfo.deadline"></div>
         <div>
-            实名投票: <input type="radio" value="1" v-model="voteInfo.anonymouse" >
+            实名投票: <input type="radio" value="1" v-model="voteInfo.anonymouse">
             匿名投票: <input type="radio" value="0" v-model="voteInfo.anonymouse">
         </div>
         <div>
@@ -33,18 +35,18 @@
         </div>
     </div>
 </body>
-<script src="https://cdn.jsdelivr.net/npm/vue/dist/vue.js"></script>
+<script src="./assets/vue.js"></script>
 <script src="./assets/axios.min.js"></script>
 <script>
     var app = new Vue({
         el: '#app',
-        data:{
-            voteInfo:{
+        data: {
+            voteInfo: {
                 title: '',
                 desc: '',
                 options: [
-                '',
-                '',
+                    '',
+                    '',
                 ],
                 deadline: '',
                 anonymouse: '1',
@@ -52,14 +54,14 @@
             }
 
         },
-        methods:{
-            deleteoption(index){
+        methods: {
+            deleteoption(index) {
                 this.voteInfo.options.splice(index, 1)
             },
-            addoption(){
+            addoption() {
                 this.voteInfo.options.push('')
             },
-            async createvote(){
+            async createvote() {
                 var data = await axios.post('/create-vote', {
                     title: this.voteInfo.title,
                     desc: this.voteInfo.desc,
@@ -74,4 +76,5 @@
     })
 
 </script>
+
 </html>
