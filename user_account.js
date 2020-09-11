@@ -23,15 +23,19 @@ dbp.then(dbObject => {
 app.route('/register')
     .post(uploader.single('avatar'), async (req, res, next) => {
         var regInfo = req.body;
+        if (regInfo.captcha != req.session.captcha) {
+            res.json({
+                code: -1,
+                msg: '验证码错误'
+            })
+            return;
+        }
+
         var user = await db.get('SELECT * FROM users WHERE name=?', regInfo.name);
-        // 判断req.file上的size是否过大 还需要进行校验
-        // var imgBuf = await fsp.readFile(req.file.path);
-        // await sharp(imgBuf)
-        //     .resize(256)
-        //     .File(req.file.path)
+
         if (user) {
             // 如果注册失败了  需要删除文件
-            if (req.file) {
+            if (regInfo) {
                 await fsp.unlink(req.file.path)
             }
             res.json({
@@ -51,6 +55,7 @@ app.route('/register')
 app.route('/login')
     .post(async (req, res, next) => {
         var userInfo = req.body;
+
         if (userInfo.captcha != req.session.captcha) {
             res.json({
                 code: -1,
@@ -78,22 +83,43 @@ app.route('/login')
 app.get('/userinfo', async (req, res, next) => {
     var userid = req.signedCookies.userid;
     if (userid) {
-        res.json(await db.get('SELECT id,name,avatar FROM users WHERE id = ?', userid))
+        res.json( {
+            code: 0,
+            data: await db.get('SELECT id,name,avatar FROM users WHERE id = ?', userid)
+        })
     } else {
-        res.status(404).end();
+        res.json({
+            code: -1,
+            msg :'未登录'
+        })
     }
 })
 
 app.get('/captcha', (req, res, next) => {
+    svgCaptcha.options.width = 100;
     var captcha = svgCaptcha.create();
     res.type('svg')
+    
     req.session.captcha = captcha.text;
+    console.log(captcha.text)
+    console.log(req.session)
     res.end(captcha.data)
 })
 
 app.route('/forgot')
     .post(async (req, res, next) => {
-        var email = req.body.email;
+        var userInfo = req.body;
+        console.log(userInfo)
+
+        if (userInfo.captcha != req.session.captcha) {
+            res.json({
+                code: -1,
+                msg: '验证码错误'
+            })
+            return;
+        }
+
+        var email = userInfo.email;
         var user = await db.get('SELECT * FROM users WHERE email=?', email)
         if (!user) {
             res.json({
@@ -109,15 +135,16 @@ app.route('/forgot')
             delete changePasswordTokenMap[token]
         }, 60 * 1000 * 20)
 
-        var link = `http://localhost:3005/change-password/${token}`;
+        var link = `http://localhost:3000/change-password/${token}`;
 
+        console.log(link)
         // 实现简单的发送邮件
         var transporter = nodemailer.createTransport({
             host: 'smtp.qq.com',
             secure: true,
             auth: {
                 user: '771804817@qq.com',
-                pass: 'ddfupkjkitbtbbei',
+                pass: 'gxbcmtaxxolnbfde',
             }
         })
 

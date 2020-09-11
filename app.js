@@ -34,19 +34,24 @@ app.locals.pretty = true;
 
 // 设置渲染资源目录
 // app.set('view engine', 'pug')
-app.use((req, res, next) => {
-    res.set('Content-Type', 'text/html; charset=UTF-8');
-    next();
-})
+// app.use((req, res, next) => {
+//     res.set('Content-Type', 'text/html; charset=UTF-8');
+//     next();
+// })
 app.use(session({
     secret: 'sercet',
-    resave: false,
-    cookie: { maxAge: 65536 },
+    resave: true,
     saveUninitialized: true,
-})) // session 中间件  需要写在cookieParser前面
+    cookie: { secure: false , maxAge: 65536}
+})) 
+// session 中间件  需要写在cookieParser前面
 app.use(cookieParser('sercet')) // cookie解析和设置中间件
+
 app.use(express.json()) //解析Json
+app.use(express.static(__dirname + '/build'));
+
 app.use(express.static(__dirname + '/static')); // 静态文件默认目录
+app.use('/vote-view/upload', express.static(__dirname + '/upload')) // 头像图片二进制文件上传目录
 app.use('/upload', express.static(__dirname + '/upload')) // 头像图片二进制文件上传目录
 app.use(express.urlencoded({ //解析url编码
     extended: true
@@ -54,7 +59,7 @@ app.use(express.urlencoded({ //解析url编码
 app.use(cors({
     maxAge: 86400,
     credentials: true,
-    // origin: 'http://127.0.0.1:8080',
+    origin: '/'
 }))
 
 const ioServer = socketIO(server);
@@ -63,12 +68,17 @@ global.ioServer = ioServer;  //被迫无奈放到全局  为了让vote_router.js
 ioServer.on('connection', socket => {
     // var path = url.parse(socket.request.headers.referer).path;
     socket.on('select room', roomid => {
-        socket.join('/vote/' + roomid);
+        socket.join('/vote-view/' + roomid);
     })
 })
 app.use('/', voteRouter)
 // 用户登录注册路由引入
 app.use('/', userAccountRouter)
+
+app.get('*', (req, res, next) => {
+    console.log(req)
+    res.redirect(301, 'http://' + req.headers.host)
+})
 
 server.listen(port, () => {
     console.log('app is run on port ', port)
