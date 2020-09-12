@@ -135,7 +135,7 @@ app.route('/forgot')
             delete changePasswordTokenMap[token]
         }, 60 * 1000 * 20)
 
-        var link = `http://localhost:3000/change-password/${token}`;
+        var link = `http://${req.headers.host}:3005/change-password/${token}`;
 
         console.log(link)
         // 实现简单的发送邮件
